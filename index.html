@@ -359,6 +359,34 @@
       display: block;
     }
 
+
+    /* =========================================
+       ANDROID-ERSATZ-BUTTON (Scene Viewer)
+       ========================================= */
+
+    #ar-fallback {
+      position: absolute;
+      left: 50%;
+      bottom: max(30px, env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      min-width: 230px;
+      padding: 16px 22px;
+      border-radius: 999px;
+      background: #111;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+      text-decoration: none;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+      display: none;
+      z-index: 6;
+    }
+
+    #ar-fallback.visible {
+      display: block;
+    }
+
     /* Standard-Ladebalken von model-viewer ausblenden */
 
     model-viewer::part(default-progress-bar) {
@@ -534,6 +562,11 @@
     Chrome (Android) bzw. Safari (iPhone) öffnen und den
     Kamerazugriff erlauben.
   </div>
+
+
+
+  <!-- Android-Ersatz: öffnet Google Scene Viewer direkt -->
+  <a id="ar-fallback" href="#">Produkt in AR ansehen</a>
 
 
 
@@ -798,6 +831,45 @@
         }
       }
     );
+
+
+
+    /* =========================================
+       ANDROID: ERSATZ-BUTTON, WENN BROWSER KEIN AR MELDET
+       (z. B. Samsung Internet oder In-App-Browser)
+       ========================================= */
+
+    (function () {
+      const ua = navigator.userAgent;
+      // Android – auch im "Desktop-Modus" (meldet sich dann als Linux mit Touch)
+      const isAndroid =
+        /android/i.test(ua) ||
+        (/Linux/i.test(ua) && !/CrOS/i.test(ua) && navigator.maxTouchPoints > 0);
+      if (!isAndroid) return;
+
+      const fallback = document.querySelector('#ar-fallback');
+      const glbUrl = new URL(modelViewer.getAttribute('src'), location.href).href;
+
+      const params = new URLSearchParams({
+        file: glbUrl,
+        mode: 'ar_preferred',
+        title: document.title
+      });
+
+      fallback.href =
+        'intent://arvr.google.com/scene-viewer/1.2?' + params.toString() +
+        '#Intent;scheme=https;package=com.google.android.googlequicksearchbox;' +
+        'action=android.intent.action.VIEW;' +
+        'S.browser_fallback_url=' + encodeURIComponent(location.href) + ';end;';
+
+      modelViewer.addEventListener('load', () => {
+        setTimeout(() => {
+          if (!modelViewer.canActivateAR) {
+            fallback.classList.add('visible');
+          }
+        }, 500);
+      });
+    })();
 
 
   </script>
